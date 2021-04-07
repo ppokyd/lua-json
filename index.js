@@ -1,4 +1,4 @@
-const { isNull, isBoolean, isNumber, isString, isArray, isObject, isEmpty, fromPairs, keys, map, repeat } = require('lodash')
+const { isNull, isBoolean, isNumber, isString, isArray, isObject, isEmpty, fromPairs, keys, map, repeat, property } = require('lodash')
 const { parse: parseLua } = require('luaparse')
 
 const formatLuaString = (string, singleQuote) => (singleQuote ? `'${string.replace(/'/g, "\\'")}'` : `"${string.replace(/"/g, '\\"')}"`)
@@ -30,7 +30,9 @@ const format = (value, options = { eol: '\n', singleQuote: true, spaces: 2 }) =>
         const spacesEnd = isNumber(options.spaces) ? repeat(' ', options.spaces * i) : repeat(options.spaces, i)
         return `{${eol}${value.map(e => `${spaces}${rec(e, i + 1)},`).join(eol)}${eol}${spacesEnd}}`
       }
-      return `{${value.map(e => `${rec(e, i + 1)},`).join('')}}`
+      return `{${value.map(e => {
+        return `${rec(e, i + 1)},`
+      }).join('')}}`
     }
     if (isObject(value)) {
       if (isEmpty(value)) {
@@ -39,9 +41,14 @@ const format = (value, options = { eol: '\n', singleQuote: true, spaces: 2 }) =>
       if (options.spaces) {
         const spaces = isNumber(options.spaces) ? repeat(' ', options.spaces * (i + 1)) : repeat(options.spaces, i + 1)
         const spacesEnd = isNumber(options.spaces) ? repeat(' ', options.spaces * i) : repeat(options.spaces, i)
-        return `{${eol}${keys(value)
+
+        const res = `${eol}${keys(value)
           .map(key => `${spaces}${formatLuaKey(key, options.singleQuote)} = ${rec(value[key], i + 1)},`)
-          .join(eol)}${eol}${spacesEnd}}`
+          .join(eol)}${eol}${spacesEnd}`;
+
+        return value.type === 'property'
+          ? `[${isString(value.key) ? `'${value.key}'` : value.key }] = ${rec(value.value, i + 1)}`
+          : `{${res}}`;
       }
       return `{${keys(value)
         .map(key => `${formatLuaKey(key, options.singleQuote)}=${rec(value[key], i + 1)},`)
@@ -76,16 +83,18 @@ const luaAstToJson = ast => {
     if (ast.fields[0] && ast.fields[0].key) {
       const object = fromPairs(
         map(ast.fields, field => {
-          const { key, value } = luaAstToJson(field)
-          return [key, value]
+          const { key, value } = luaAstToJson(field);
+          return [key, escape(value)]
         }),
       )
       return isEmpty(object) ? [] : object
     }
-    return map(ast.fields, field => {
-      const value = luaAstToJson(field)
-      return value.__internal_table_key ? [value.key, value.value] : value
-    })
+    return ast.fields
+      .filter(field => luaAstToJson(field) !== null)
+      .map(field => {
+        const value = luaAstToJson(field);
+        return value.__internal_table_key ? { type: 'property', key: value.key, value: escape(value.value) } : escape(value)
+      });
   }
   // top-level statements, only looking at the first statement, either return or local
   // todo: filter until return or local?
@@ -104,6 +113,14 @@ const luaAstToJson = ast => {
 }
 
 const parse = value => luaAstToJson(parseLua(value, { comments: false }))
+
+const escape = value => value && value.replace
+  ? value
+    .replace(/\\\\/gm, '\\\\\\\\')
+    .replace(/\\r/gm, '\\\\r')
+    .replace(/\\n/gm, '\\\\n')
+    .replace(/\n/gm, '\\n')
+  : value;
 
 module.exports = {
   format,
