@@ -1,7 +1,7 @@
 {
   "name": "lua-json",
   "version": "1.0.0",
-  "description": "Convert Lua tables to and from JSON",
+  "description": "Convert Lua tables to and from JSON. Forked from https://github.com/kcwiki/lua-json",
   "keywords": [
     "json",
     "lua",
@@ -10,11 +10,11 @@
     "parse"
   ],
   "license": "MIT",
-  "author": "gakada (https://github.com/gakada)",
+  "author": "ppokyd (https://github.com/ppokyd)",
   "contributors": [],
-  "homepage": "https://github.com/kcwiki/lua-json#readme",
-  "bugs": "https://github.com/kcwiki/lua-json/issues",
-  "repository": "kcwiki/lua-json",
+  "homepage": "https://github.com/ppokyd/lua-json#readme",
+  "bugs": "https://github.com/ppokyd/lua-json/issues",
+  "repository": "ppokyd/lua-json",
   "main": "index.js",
   "files": [
     "index.js"
@@ -27,8 +27,8 @@
     "up": "yarn upgrade --latest"
   },
   "dependencies": {
-    "lodash": "^4.17.11",
-    "luaparse": "^0.2.1"
+    "lodash": "^4.17.21",
+    "luaparse": "^0.3.0"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.1",
